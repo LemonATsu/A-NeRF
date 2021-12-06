@@ -1,0 +1,61 @@
+expname = perfcap
+basedir = ./logs
+datadir = ./data/MonoPerfCap/
+
+# mixamo setup
+dataset_type = perfcap
+subject = weipeng
+use_background = True
+fg_ratio = 1.0
+ext_scale = 0.00100
+chunk = 4096
+
+# skeleton relative encoding
+bone_type = reldir
+kp_dist_type = reldist
+view_type = relray
+
+
+use_cutoff = True
+cutoff_viewdir = True
+cutoff_inputs = True
+use_viewdirs = True
+
+
+# network setting
+netwidth = 256
+netwidth_fine = 256
+multires = 7
+multires_views = 4
+
+# training setting
+# use_val = True # to train on train/val split
+image_batching = True
+N_sample_images = 256
+N_rand = 3072
+N_samples = 64
+N_importance = 16
+n_iters = 500000
+lrate_decay = 500000
+decay_unit = 1
+raw_noise_std = 1.0
+loss_fn = L1
+
+# pose_opt setting
+opt_rot6d = True
+opt_pose_tol = 0.01
+opt_pose_type = BE
+opt_pose = True
+opt_pose_step = 20
+opt_pose_lrate = 0.0005
+opt_pose_decay_rate = 1.
+opt_pose_lrate_decay = 2
+opt_pose_decay_unit = 1000
+opt_pose_joint = True
+opt_pose_coef = 2.0
+opt_framecode = True
+
+# logging
+render_factor = 2
+i_testset = 25000
+

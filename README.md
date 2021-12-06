@@ -17,28 +17,6 @@ conda install --file requirements.txt
 TODO: mention how to download SMPL
 
 TODO: mention how to install pytorch-ssim
-## Training
-We provide template training configurations in `configs/` for different settings. 
-
-To train A-NeRF on our pre-processed SURREAL dataset,
-```
-python run_nerf.py --config configs/surreal/surreal.txt --basedir logs  --expname surreal_model
-```
-The trained weights and log can be found in ```logs/surreal_model```.
-
-To train A-NeRF on our pre-processed Mixamo dataset with estimated poses, run
-```
-python run_nerf.py --config configs/mixamo/mixamo.txt --basedir log_mixamo/ --num_workers 8 --subject archer --expname mixamo_archer
-```
-This will train A-NeRF on Mixamo Archer with pose refinement for 500k iterations, with 8 worker threads for the dataloader.
-
-To finetune the learned model, run
-```
-python run_nerf.py --config configs/mixamo/mixamo_finetune.txt --finetune --ft_path log_mixamo/mixamo_archer/500000.tar --expname mixamo_archer_finetune
-```
-This will finetune the learned Mixamo Archer for 200k with the already refined poses. Note that the pose will not be updated during this time.
-
-
 ## Testing
 You can use [`run_render.py`](run_render.py) to render the learned models under different camera motions, or retarget the character to different poses by
 ```
@@ -70,6 +48,28 @@ which will output the rendered images in `render_output/surreal_mesh/mesh_render
 TODO: add example output
 
 You can change the setting in [`run_render.py`](run_render.py) to create your own rendering configuration.
+
+
+## Training
+We provide template training configurations in `configs/` for different settings. 
+
+To train A-NeRF on our pre-processed SURREAL dataset,
+```
+python run_nerf.py --config configs/surreal/surreal.txt --basedir logs  --expname surreal_model
+```
+The trained weights and log can be found in ```logs/surreal_model```.
+
+To train A-NeRF on our pre-processed Mixamo dataset with estimated poses, run
+```
+python run_nerf.py --config configs/mixamo/mixamo.txt --basedir log_mixamo/ --num_workers 8 --subject archer --expname mixamo_archer
+```
+This will train A-NeRF on Mixamo Archer with pose refinement for 500k iterations, with 8 worker threads for the dataloader.
+
+To finetune the learned model, run
+```
+python run_nerf.py --config configs/mixamo/mixamo_finetune.txt --finetune --ft_path log_mixamo/mixamo_archer/500000.tar --expname mixamo_archer_finetune
+```
+This will finetune the learned Mixamo Archer for 200k with the already refined poses. Note that the pose will not be updated during this time.
 
 
 ## Citation

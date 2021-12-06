@@ -1,0 +1,43 @@
+expname = surreal_default
+basedir = ./logs
+datadir = ./data/surreal/
+
+# surreal setup
+dataset_type = surreal
+subject = female
+use_background = True
+fg_ratio = 1.0
+ext_scale = 0.00100
+chunk = 4096
+
+# skeleton relative encoding
+bone_type = reldir
+kp_dist_type = reldist
+view_type = relray
+
+
+use_cutoff = True
+cutoff_viewdir = True
+cutoff_inputs = True
+use_viewdirs = True
+
+image_batching = True
+N_sample_images = 128
+
+# network setting
+netwidth = 256
+netwidth_fine = 256
+multires = 7
+multires_views = 4
+
+# training setting
+N_rand = 2048
+N_samples = 64
+N_importance = 16
+n_iters = 150000
+lrate_decay = 500
+raw_noise_std = 1.0
+
+# logging
+i_testset = 25000
+

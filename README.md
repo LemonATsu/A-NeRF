@@ -13,6 +13,10 @@ conda create -n anerf python=3.8
 conda activate anerf
 conda install --file requirements.txt
 ```
+
+TODO: mention how to download SMPL
+
+TODO: mention how to install pytorch-ssim
 ## Training
 We provide template training configurations in `configs/` for different settings. 
 
@@ -36,6 +40,37 @@ This will finetune the learned Mixamo Archer for 200k with the already refined p
 
 
 ## Testing
+You can use [`run_render.py`](run_render.py) to render the learned models under different camera motions, or retarget the character to different poses by
+```
+python run_render.py --nerf_args logs/surreal_model/args.txt --ckptpath logs/surreal_model/150000.tar \ 
+				     --dataset surreal --entry hard --render_type bullet --render_res 512 512\
+                     --white_bkgd --runname surreal_bullet
+```
+Here, 
+- `--dataset` specifies the data source for poses, 
+- `--entry` specifices the particular subset from the dataset to render, 
+- `--render_type` defines the camera motion to use, and
+- `--render_res` specifies the height and width of the rendered images.
+
+Therefore, the above command will render 512x512 the learned SURREAL character with bullet-time effect. The output can be found in `render_output/surreal_bullet/`
+TODO: add example output
+
+You can also extract mesh for the learned character:
+```
+python run_render.py --nerf_args logs/surreal_model/args.txt --ckptpath logs/surreal_model/150000.tar \ 
+				     --dataset surreal --entry hard --render_type mesh --runname surreal_mesh
+```
+You can find the extracted `.ply` files in `render_output/surreal_mesh/meshes/`.
+
+To render the mesh as in the paper, run
+```
+python render_mesh.py --expname surreal_mesh 
+```
+which will output the rendered images in `render_output/surreal_mesh/mesh_render/`
+TODO: add example output
+
+You can change the setting in [`run_render.py`](run_render.py) to create your own rendering configuration.
+
 
 ## Citation
 ```

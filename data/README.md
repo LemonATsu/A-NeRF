@@ -30,6 +30,7 @@ For rendering, you can simply use the config files in `configs/` for `--nerf_arg
 Belows are the brief summaries for the pretrained models:
 
 `surreal.tar`: A model trained on SURREAL full dataset for 150k iterations with A-NeRF.
+
 `{james,archer}_ft.tar`: Models that are trained with pose refinement for 500k (with `--opt_pose_stop 200000`), and then finetune with config file `configs/mixamo/mixamo_finetunes.txt` for 200k.
 
 `{james,archer}_ft_tv.tar`: Same as the above, but use `--use_temp_loss --temp_coef 0.05` during the pose refinement phase.

@@ -24,11 +24,10 @@ pip install pytorch3d -f https://dl.fbaipublicfiles.com/pytorch3d/packaging/whee
 pip install -r requirements.txt
 
 ```
-### Download pre-processed data
-We provide pre-processed data in `.h5` format. Please see `TODO: add instruction in data/` for details.
+### Download pre-processed data and pre-trained models
+We provide pre-processed data in `.h5` format, as well as pre-trained characters for SURREAL and Mixamo dataset. 
 
-### Pre-trained models
-We provided pre-trained weights for SURREAL and Mixamo dataset. Please see `TODO: add instruction` for details.
+Please see [data/README.md](data/) for details.
 
 ## Testing
 You can use [`run_render.py`](run_render.py) to render the learned models under different camera motions, or retarget the character to different poses by

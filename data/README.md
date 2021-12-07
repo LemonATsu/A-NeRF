@@ -1,5 +1,5 @@
 ## Pre-processed data
-We provide pre-processed `.h5` files for SURREAL and Mixamo dataset. You can find the processed `.zip` files [here](https://drive.google.com/drive/folders/1QXli-2BS3xyxK7CYweT1cP7xAgVjcKM9?usp=sharing). 
+We provide pre-processed `.h5` files for SURREAL and Mixamo dataset. You can find the processed `.zip` files [here](https://drive.google.com/drive/folders/1hFw2OGaqBgxaithmLP5gOTOMgrgJb7xG?usp=sharing). 
 
 The data folder (i.e., `data/`) should be organized as the following:
 ```                                                                                      

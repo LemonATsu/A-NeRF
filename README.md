@@ -44,6 +44,7 @@ Here,
 - `--render_res` specifies the height and width of the rendered images.
 
 Therefore, the above command will render 512x512 the learned SURREAL character with bullet-time effect like the following (resizsed to 256x256):
+
 ![](imgs/bullet_time.gif)
 The output can be found in `render_output/surreal_bullet/`.
 TODO: add example output
@@ -60,6 +61,7 @@ To render the mesh as in the paper, run
 python render_mesh.py --expname surreal_mesh 
 ```
 which will output the rendered images in `render_output/surreal_mesh/mesh_render/` like the following:
+
 ![](imgs/mesh_render.gif)
 
 You can change the setting in [`run_render.py`](run_render.py) to create your own rendering configuration.

@@ -20,8 +20,8 @@ TODO: mention how to install pytorch-ssim
 ## Testing
 You can use [`run_render.py`](run_render.py) to render the learned models under different camera motions, or retarget the character to different poses by
 ```
-python run_render.py --nerf_args logs/surreal_model/args.txt --ckptpath logs/surreal_model/150000.tar \ 
-				     --dataset surreal --entry hard --render_type bullet --render_res 512 512\
+python run_render.py --nerf_args logs/surreal_model/args.txt --ckptpath logs/surreal_model/150000.tar \
+                     --dataset surreal --entry hard --render_type bullet --render_res 512 512 \
                      --white_bkgd --runname surreal_bullet
 ```
 Here, 
@@ -35,8 +35,8 @@ TODO: add example output
 
 You can also extract mesh for the learned character:
 ```
-python run_render.py --nerf_args logs/surreal_model/args.txt --ckptpath logs/surreal_model/150000.tar \ 
-				     --dataset surreal --entry hard --render_type mesh --runname surreal_mesh
+python run_render.py --nerf_args logs/surreal_model/args.txt --ckptpath logs/surreal_model/150000.tar \
+                     --dataset surreal --entry hard --render_type mesh --runname surreal_mesh
 ```
 You can find the extracted `.ply` files in `render_output/surreal_mesh/meshes/`.
 

@@ -23,6 +23,6 @@ The data folder (i.e., `data/`) should be organized as the following:
 Note that Surreal dataset has ground truth pose and camera data, while Mixamo dataset only has [SPIN](https://github.com/nkolot/SPIN) estimated ones.
 
 ## Pre-trained weights
-We also provide pre-trained characters for SURREAL and Mixamo. You can download the models [here]().
+We also provide pre-trained characters for SURREAL and Mixamo. You can download the models [here](https://drive.google.com/drive/folders/1g0FvSqx9VpC2olhnnuhAnU3Mtlk0is8M?usp=sharing).
 
 For rendering, you can simply use the config files in `configs/` for `--nerf_args`.

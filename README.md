@@ -2,7 +2,7 @@
 ### [Paper](https://arxiv.org/abs/2102.06199) | [Website](https://lemonatsu.github.io/anerf/) | [Data(Coming soon)]()
 ![](imgs/teaser.gif)
 >**A-NeRF: Articulated Neural Radiance Fields for Learning Human Shape, Appearance, and Pose**\
->[Shih-Yang Su](https://lemonatsu.github.io/), [Frank Yu](https://yu-frank.github.io/), [Michael Zollhöfer](https://zollhoefer.com/), and [Helge Rhodin](http://helge.rhodin.de/)\
+>[Shih-Yang Su](https://lemonatsu.github.io/), [Frank Yu](https://yu-frank.github.io/), [Michael Zollhรถfer](https://zollhoefer.com/), and [Helge Rhodin](http://helge.rhodin.de/)\
 >Thirty-Fifth Conference on Neural Information Processing Systems (NeurIPS 2021)
 
 
@@ -30,7 +30,9 @@ Here,
 - `--render_type` defines the camera motion to use, and
 - `--render_res` specifies the height and width of the rendered images.
 
-Therefore, the above command will render 512x512 the learned SURREAL character with bullet-time effect. The output can be found in `render_output/surreal_bullet/`
+Therefore, the above command will render 512x512 the learned SURREAL character with bullet-time effect like the following (resizsed to 256x256):
+![](imgs/bullet_time.gif)
+The output can be found in `render_output/surreal_bullet/`.
 TODO: add example output
 
 You can also extract mesh for the learned character:
@@ -44,8 +46,8 @@ To render the mesh as in the paper, run
 ```
 python render_mesh.py --expname surreal_mesh 
 ```
-which will output the rendered images in `render_output/surreal_mesh/mesh_render/`
-TODO: add example output
+which will output the rendered images in `render_output/surreal_mesh/mesh_render/` like the following:
+![](imgs/mesh_render.gif)
 
 You can change the setting in [`run_render.py`](run_render.py) to create your own rendering configuration.
 

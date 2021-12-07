@@ -4,14 +4,9 @@ We provide pre-processed `.h5` files for SURREAL and Mixamo dataset. You can fin
 The data should be placed as the following
 ```                                                                                      
 ├── data
-
-│   ├── mixamo                                                                                                
-│   │   ├── James_processed_h5py.h5      
-
-│   │   ├── James_selected.npy # Selected indices used in the paper                                                                                                                            
-
-│   │   ├── Archer_processed_h5py.h5      
-
-│   │   └── Archer_selected.npy # Selected indices used in the paper       
-
+│   ├── mixamo 
+│   │   ├── James_processed_h5py.h5
+│   │   ├── James_selected.npy # Selected indices used in the paper
+│   │   ├── Archer_processed_h5py.h5
+│   │   └── Archer_selected.npy # Selected indices used in the paper
 ```

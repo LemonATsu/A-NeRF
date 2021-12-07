@@ -79,7 +79,11 @@ To train A-NeRF on our pre-processed Mixamo dataset with estimated poses, run
 ```
 python run_nerf.py --config configs/mixamo/mixamo.txt --basedir log_mixamo/ --num_workers 8 --subject archer --expname mixamo_archer
 ```
-This will train A-NeRF on Mixamo Archer with pose refinement for 500k iterations, with 8 worker threads for the dataloader. You can also add `--use_temp_loss --temp_coef 0.05` to optimize the pose with temporal constraint.
+This will train A-NeRF on Mixamo Archer with pose refinement for 500k iterations, with 8 worker threads for the dataloader. 
+
+You can also add `--use_temp_loss --temp_coef 0.05` to optimize the pose with temporal constraint. 
+
+Additionally, you can specify `--opt_pose_stop 200000` to stop the pose refinement at 200k iteraions to only optimize the body models for the remaining iterations.
 
 To finetune the learned model, run
 ```

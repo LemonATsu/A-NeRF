@@ -1,5 +1,5 @@
 # A-NeRF: Articulated Neural Radiance Fields for Learning Human Shape, Appearance, and Pose
-### [Paper](https://arxiv.org/abs/2102.06199) | [Website](https://lemonatsu.github.io/anerf/) | [Data(Coming soon)]()
+### [Paper](https://arxiv.org/abs/2102.06199) | [Website](https://lemonatsu.github.io/anerf/) | [Data](data/)
 ![](imgs/teaser.gif)
 >**A-NeRF: Articulated Neural Radiance Fields for Learning Human Shape, Appearance, and Pose**\
 >[Shih-Yang Su](https://lemonatsu.github.io/), [Frank Yu](https://yu-frank.github.io/), [Michael Zollhรถfer](https://zollhoefer.com/), and [Helge Rhodin](http://helge.rhodin.de/)\

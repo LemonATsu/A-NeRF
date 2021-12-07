@@ -46,9 +46,9 @@ Here,
 Therefore, the above command will render 512x512 the learned SURREAL character with bullet-time effect like the following (resizsed to 256x256):
 
 ![](imgs/bullet_time.gif)
-The output can be found in `render_output/surreal_bullet/`.
-TODO: add example output
 
+The output can be found in `render_output/surreal_bullet/`.
+	
 You can also extract mesh for the learned character:
 ```
 python run_render.py --nerf_args logs/surreal_model/args.txt --ckptpath logs/surreal_model/150000.tar \

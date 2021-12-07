@@ -362,6 +362,8 @@ class RayCaster(nn.Module):
             return self.render_pts_density(*args, **kwargs)
         elif fwd_type == 'density_color':
             return self.render_pts_density(*args, **kwargs, color=True)
+        elif fwd_type == 'mesh':
+            return self.render_mesh_density(*args, **kwargs)
 
         if not self.training:
             return self.forward_eval(*args, **kwargs)
@@ -650,17 +652,9 @@ class RayCaster(nn.Module):
             embedded = torch.cat([v, r], dim=-1)
 
             h = network.forward_density(embedded)
-            feature = h
             raw_density = network.alpha_linear(h)
 
-            cat_list = [raw_density]
-            if color:
-                # TODO: need to rework this
-                rgb = torch.sigmoid(network.texture_linears(h))
-                cat_list += [rgb]
-            cat_list += [feature]
-
-            return torch.cat(cat_list, dim=-1)
+            return raw_density
 
         return fwd_fn
 

@@ -52,7 +52,7 @@ def config_parser():
                         help='save gt frames')
     parser.add_argument('--fps', type=int, default=14,
                         help='fps for video')
-    parser.add_argument('--mesh_res', type=int, default=128,
+    parser.add_argument('--mesh_res', type=int, default=255,
                         help='resolution for marching cubes')
     # kp-related
     parser.add_argument('--center_kps', action='store_true',
@@ -379,7 +379,7 @@ def init_catalog(args, n_bullet=10):
                            n_bullet=n_bullet, center_kps=False, center_cam=False),
         'bubble': set_dict(hard_idx, n_step=30),
         'val': set_dict(np.array([1200 * i + np.arange(420, 700)[::5] for i in range(0, 9, 2)]).reshape(-1), length=1, skip=1),
-        'mesh': set_dict([490], length=1, skip=1),
+        'mesh': set_dict([930], length=1, skip=1),
     }
 
     # PerfCap
@@ -982,19 +982,17 @@ def evaluate_metric(rgbs, accs, bboxes, gt_dict, basedir):
 def render_mesh(basedir, render_kwargs, tensor_data, chunk=1024, radius=1.80,
                 res=255, threshold=10.):
     import mcubes, trimesh
-    ray_caster = render_kwargs['ray_caster'].module
+    ray_caster = render_kwargs['ray_caster']
 
     os.makedirs(os.path.join(basedir, 'meshes'), exist_ok=True)
     kps, skts, bones = tensor_data['kp'], tensor_data['skts'], tensor_data['bones']
     v_t_tuples = []
     for i in range(len(kps)):
-        raw_d = ray_caster.render_mesh_density(kps[i:i+1], skts[i:i+1], bones[i:i+1],
-                                               radius=radius, render_kwargs=render_kwargs['preproc_kwargs'],
-                                               res=res, netchunk=chunk)
+        raw_d = ray_caster(kps=kps[i:i+1], skts=skts[i:i+1], bones=bones[i:i+1],
+                           radius=radius, render_kwargs=render_kwargs['preproc_kwargs'],
+                           res=res, netchunk=chunk, fwd_type='mesh')
         sigma = np.maximum(raw_d.cpu().numpy(), 0)
-        threshold = 10
         vertices, triangles = mcubes.marching_cubes(sigma, threshold)
-        #v_t_tuples.append(mcubes.marching_cubes(sigma, threshold))
         mesh = trimesh.Trimesh(vertices / res - .5, triangles)
         mesh.export(os.path.join(basedir, 'meshes', f'{i:03d}.ply'))
 

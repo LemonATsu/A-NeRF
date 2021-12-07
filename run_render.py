@@ -55,8 +55,6 @@ def config_parser():
     parser.add_argument('--mesh_res', type=int, default=255,
                         help='resolution for marching cubes')
     # kp-related
-    parser.add_argument('--center_kps', action='store_true',
-                        help='move the character to (0., 0., 0.)')
     parser.add_argument('--render_refined', action='store_true',
                         help='render from refined poses')
     parser.add_argument('--subject_idx', type=int, default=0,
@@ -120,9 +118,6 @@ def load_render_data(args, nerf_args, poseopt_layer=None, opt_framecode=True):
     catalog = init_catalog(args)[args.dataset][args.entry]
     render_data = catalog.get(args.render_type, {})
     data_h5 = catalog['data_h5']
-
-    if len(render_data.keys()) > 0:
-        render_data['center_kps'] = args.center_kps
 
     # to real cameras (due to the extreme focal length they were trained on..)
     # TODO: add loading with opt pose option
@@ -374,7 +369,7 @@ def init_catalog(args, n_bullet=10):
         'data_h5': 'data/surreal/surreal_train_h5py.h5',
         'retarget': set_dict(hard_idx, length=60, skip=5, center_kps=True),
         'bullet': set_dict([190,  210,  230,  490,  510,  530,  790,  810,  830,  910,  930, 950, 1090, 1110, 1130],
-                           n_bullet=n_bullet, center_kps=False, center_cam=False),
+                           n_bullet=n_bullet, center_kps=True, center_cam=False),
         'bubble': set_dict(hard_idx, n_step=30),
         'val': set_dict(np.array([1200 * i + np.arange(420, 700)[::5] for i in range(0, 9, 2)]).reshape(-1), length=1, skip=1),
         'mesh': set_dict([930], length=1, skip=1),
@@ -406,7 +401,7 @@ def init_catalog(args, n_bullet=10):
         'retarget': set_dict(nadia_idx, length=30, skip=2),
         'bullet': set_dict(nadia_idx, n_bullet=n_bullet),
         'interpolate': set_dict(nadia_idx, n_step=10, undo_rot=True,
-                                center_cam=True, center_kps=args.center_kps),
+                                center_cam=True, center_kps=True),
         'bubble': set_dict(nadia_idx, n_step=30),
         'animate': set_dict([280, 410, 1040], n_step=10, center_cam=True, center_kps=True,
                             joints=np.array([1,2,4,5,7,8,10,11])),
@@ -420,7 +415,7 @@ def init_catalog(args, n_bullet=10):
         'idx_map': load_idxs('data/mixamo/James_selected.npy'),
         'refined': 'neurips21_ckpt/trained/ours/mixamo/james_tv_500k.tar',
         'retarget': set_dict(james_idx, length=30, skip=2),
-        'bullet': set_dict(james_idx, n_bullet=n_bullet),
+        'bullet': set_dict(james_idx, n_bullet=n_bullet, center_cam=True, center_kps=True),
         'interpolate': set_dict(james_idx, n_step=10, undo_rot=True,
                                 center_cam=True),
         'bubble': set_dict(james_idx, n_step=30),
@@ -435,7 +430,7 @@ def init_catalog(args, n_bullet=10):
         'idx_map': load_idxs('data/mixamo/Archer_selected.npy'),
         'refined': 'neurips21_ckpt/trained/ours/mixamo/archer_tv_500k.tar',
         'retarget': set_dict(archer_idx, length=30, skip=2),
-        'bullet': set_dict(archer_idx, n_bullet=n_bullet),
+        'bullet': set_dict(archer_idx, n_bullet=n_bullet, center_cam=True, center_kps=True),
         'interpolate': set_dict(archer_idx, n_step=10, undo_rot=True,
                                 center_cam=True),
         'bubble': set_dict(archer_idx, n_step=30),
@@ -725,7 +720,7 @@ def load_interpolate(pose_h5, c2ws, focals, rest_pose, pose_keys,
 
 def load_bullettime(pose_h5, c2ws, focals, rest_pose, pose_keys,
                     selected_idxs, refined=None, n_bullet=30,
-                    undo_rot=False, center_cam=True, center_kps=False,
+                    undo_rot=False, center_cam=True, center_kps=True,
                     idx_map=None):
 
     # prepare camera

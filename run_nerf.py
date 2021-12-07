@@ -225,7 +225,7 @@ def config_parser():
 
     parser.add_argument("--use_temp_loss", action='store_true',
                         help='use temporal smoothness loss')
-    parser.add_argument("--temp_coef", type=float, default=0.1,
+    parser.add_argument("--temp_coef", type=float, default=0.05,
                         help='coefficient on temporal smoothness loss')
 
     parser.add_argument("--chunk", type=int, default=1024*32,

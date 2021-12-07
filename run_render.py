@@ -313,15 +313,16 @@ def init_catalog(args, n_bullet=10):
         '3dhp': None,
     }
 
+    def load_idxs(path):
+        if not os.path.exists(path):
+            print(f'Index file {path} does not exist.')
+            return []
+        return np.load(path)
     def set_dict(selected_idxs, **kwargs):
         return {'selected_idxs': np.array(selected_idxs), **kwargs}
 
     # H36M
-    # TODO: currently use the same set of idx for one dataset.
-    #       can set different index for different things
-    #s9_idx = [121, 500, 1000, 1059, 1300, 1600, 1815, 2400, 3014, 3702, 4980]
     s9_idx = [121, 500, 1000, 1059, 1300, 1600, 1815, 2400, 3014, 3702, 4980]
-    #s9_idx = [1000] # s9 quick
     h36m_s9 = {
         'data_h5': 'data/h36m/S9_processed_h5py.h5',
         'refined': 'neurips21_ckpt/trained/ours/h36m/s9_sub64_500k.tar',
@@ -331,12 +332,12 @@ def init_catalog(args, n_bullet=10):
                            center_cam=True),
         'interpolate': set_dict(s9_idx, n_step=10, undo_rot=True,
                                 center_cam=True),
-        'correction': set_dict(np.load('data/h36m/S9_top50_refined.npy')[:1], n_step=30),
+        'correction': set_dict(load_idxs('data/h36m/S9_top50_refined.npy')[:1], n_step=30),
         'animate': set_dict([1000, 1059, 2400], n_step=10, center_cam=True, center_kps=True,
                             joints=np.array([17,19,21,23])),
         'bubble': set_dict(s9_idx, n_step=30),
         'poserot': set_dict(np.array([1000])),
-        'val': set_dict(np.load('data/h36m/S9_val_idxs.npy'), length=1, skip=1),
+        'val': set_dict(load_idxs('data/h36m/S9_val_idxs.npy'), length=1, skip=1),
     }
     s11_idx = [213, 656, 904, 1559, 1815, 2200, 2611, 2700, 3110, 3440, 3605]
     h36m_s11 = {
@@ -348,22 +349,19 @@ def init_catalog(args, n_bullet=10):
         'interpolate': set_dict(s11_idx, n_step=10, undo_rot=True,
                                 center_cam=True),
 
-        'correction': set_dict(np.load('data/h36m/S11_top50_refined.npy')[:1], n_step=30),
-        #'animate': set_dict([213, 2700, 2200], n_step=10, center_cam=True, center_kps=True,
-        #                    joints=np.array([3,6,9,12,15,16,18])),
-
+        'correction': set_dict(load_idxs('data/h36m/S11_top50_refined.npy')[:1], n_step=30),
         'animate': set_dict([2507, 700, 900], n_step=10, center_cam=True, center_kps=True,
                             joints=np.array([3,6,9,12,15,16,18])),
         'bubble': set_dict(s11_idx, n_step=30),
-        'val': set_dict(np.load('data/h36m/S11_val_idxs.npy'), length=1, skip=1),
+        'val': set_dict(load_idxs('data/h36m/S11_val_idxs.npy'), length=1, skip=1),
     }
 
     # SURREAL
     easy_idx = [10, 70, 350, 420, 490, 910, 980, 1050]
     surreal_val = {
         'data_h5': 'data/surreal/surreal_val_h5py.h5',
-        'val': set_dict(np.load('data/surreal/surreal_val_idxs.npy')[::2], length=1, skip=1),
-        'val2': set_dict(np.load('data/surreal/surreal_val_idxs.npy')[:300], length=1, skip=1),
+        'val': set_dict(load_idxs('data/surreal/surreal_val_idxs.npy'), length=1, skip=1),
+        'val2': set_dict(load_idxs('data/surreal/surreal_val_idxs.npy')[:300], length=1, skip=1),
     }
     surreal_easy = {
         'data_h5': 'data/surreal/surreal_train_h5py.h5',
@@ -386,7 +384,6 @@ def init_catalog(args, n_bullet=10):
     weipeng_idx = [0, 50, 100, 150, 200, 250, 300, 350, 430, 480, 560,
                    600, 630, 660, 690, 720, 760, 810, 850, 900, 950, 1030,
                    1080, 1120]
-    #weipeng_idx = [0, 500, 100, 150, 200]
     perfcap_weipeng = {
         'data_h5': 'data/MonoPerfCap/Weipeng_outdoor/Weipeng_outdoor_processed_h5py.h5',
         'refined': 'neurips21_ckpt/trained/ours/perfcap/weipeng_tv_500k.tar',
@@ -420,7 +417,7 @@ def init_catalog(args, n_bullet=10):
     james_idx = [20, 78, 138, 118, 1149, 333, 3401, 2221, 4544]
     mixamo_james = {
         'data_h5': 'data/mixamo/James_processed_h5py.h5',
-        'idx_map': np.load('data/mixamo/James_selected.npy'),
+        'idx_map': load_idxs('data/mixamo/James_selected.npy'),
         'refined': 'neurips21_ckpt/trained/ours/mixamo/james_tv_500k.tar',
         'retarget': set_dict(james_idx, length=30, skip=2),
         'bullet': set_dict(james_idx, n_bullet=n_bullet),
@@ -435,7 +432,7 @@ def init_catalog(args, n_bullet=10):
     archer_idx = [158, 672, 374, 414, 1886, 2586, 2797, 4147, 4465]
     mixamo_archer = {
         'data_h5': 'data/mixamo/Archer_processed_h5py.h5',
-        'idx_map': np.load('data/mixamo/Archer_selected.npy'),
+        'idx_map': load_idxs('data/mixamo/Archer_selected.npy'),
         'refined': 'neurips21_ckpt/trained/ours/mixamo/archer_tv_500k.tar',
         'retarget': set_dict(archer_idx, length=30, skip=2),
         'bullet': set_dict(archer_idx, n_bullet=n_bullet),
@@ -450,11 +447,8 @@ def init_catalog(args, n_bullet=10):
     nb_subjects = ['315', '377', '386', '387', '390', '392', '393', '394']
     # TODO: hard-coded: 6 views
     nb_idxs = np.arange(len(np.concatenate([np.arange(1, 31), np.arange(400, 601)])) * 6)
-    #nb_idxs = np.arange(12)[:5]
     nb_dict = lambda subject: {'data_h5': f'data/zju_mocap/{subject}_test_h5py.h5',
                                'val': set_dict(nb_idxs, length=1, skip=1)}
-    #nb_dict = lambda subject: {'data_h5': f'data/zju_mocap/{subject}_train_h5py.h5',
-    #                           'val': set_dict(nb_idxs, length=1, skip=1)}
 
     RenderCatalog['h36m'] = {
         'S9': h36m_s9,

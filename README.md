@@ -7,16 +7,29 @@
 
 
 ## Setup
-TODO: fill in the exact things here
+
+### Setup environment
 ```
 conda create -n anerf python=3.8
 conda activate anerf
-conda install --file requirements.txt
+
+# install pytorch for your corresponding CUDA environments
+pip install torch
+
+# install pytorch3d: note that doing `pip install pytorch3d` directly may install an older version with bugs.
+# be sure that you specify the version that matches your CUDA environment. See: https://github.com/facebookresearch/pytorch3d
+pip install pytorch3d -f https://dl.fbaipublicfiles.com/pytorch3d/packaging/wheels/py38_cu102_pyt190/download.html
+
+# install other dependencies
+pip install -r requirements.txt
+
 ```
+### Download pre-processed data
+We provide pre-processed data in `.h5` format. Please see `TODO: add instruction in data/` for details.
 
-TODO: mention how to download SMPL
+### Pre-trained models
+We provided pre-trained weights for SURREAL and Mixamo dataset. Please see `TODO: add instruction` for details.
 
-TODO: mention how to install pytorch-ssim
 ## Testing
 You can use [`run_render.py`](run_render.py) to render the learned models under different camera motions, or retarget the character to different poses by
 ```

@@ -302,32 +302,6 @@ def config_parser():
     parser.add_argument("--softplus_shift", type=float, default=1.0,
                         help='shift the softplus activation input by subtracting this amount')
 
-    # g-nerf options
-    parser.add_argument("--normalize_adj", action='store_true',
-                        help='to normalize the adjacency matrix for aggregation')
-    parser.add_argument("--bound_adj", action='store_true',
-                        help='bound the adj value to 0-1 by apply sigmoid')
-    parser.add_argument("--gnn_backbone", type=str, default="PoolPNGCN",
-                        help='backbone to use for gnerf')
-    parser.add_argument("--skip_gcn", type=int, default=10,
-                        help='to skip-concate input feature in the gcc backbone')
-    parser.add_argument("--node_W", type=int, default=32,
-                        help='width for GNN parameters')
-    parser.add_argument("--jcode_ch", type=int, default=0,
-                        help='per-joint node code')
-    parser.add_argument("--jcode_type", type=str, default=None,
-                        help='type of code to use')
-    parser.add_argument("--node_coef", type=float, default=1.0,
-                        help='rgb loss on node prediction')
-    # m-nerf options
-    parser.add_argument("--mapper_backbone", type=str, default="mlp",
-                        help='backbone to use for gnerf')
-    parser.add_argument("--pretrain_mapper", type=int, default=0,
-                        help='pretrain mapper for N batches')
-
-    # mi-nerf options
-    parser.add_argument("--subjectcode_size", type=int, default=128,
-                        help='size for subject shape/appearance')
     # TODO: get this from dataloader?
     parser.add_argument("--n_subjects", type=int, default=2,
                         help='numbers of subjects to learn')

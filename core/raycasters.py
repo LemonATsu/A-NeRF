@@ -243,17 +243,6 @@ def get_pts_tr_fn(args):
 
     if args.pts_tr_type == 'local':
         tr_fn = WorldToLocalEncoder()
-    elif args.pts_tr_type == 'bone':
-        tr_fn = WorldToBoneEncoder()
-    elif args.pts_tr_type == 'lrbone':
-        #TODO: poor type naming lol
-        tr_fn = WorldToBoneEncoder(local_root=True)
-    elif args.pts_tr_type == 'orbone':
-        tr_fn = OnlyRootToBoneEncoder()
-    elif args.pts_tr_type == 'ork':
-        tr_fn = OnlyRootToKPEncoder()
-    elif args.pts_tr_type == 'jce':
-        tr_fn = JointCenteredEncoder()
     else:
         raise NotImplementedError(f'Point transformation {args.pts_tr_type} is undefined.')
     return tr_fn

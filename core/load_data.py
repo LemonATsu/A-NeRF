@@ -73,7 +73,7 @@ def load_data(args):
     dataset = get_dataset(args)
     # Main loop controls the iteration, so simply set N_iter to something > args.n_iters
     sampler = RayImageSampler(dataset, N_images=args.N_sample_images,
-                              N_iter=args.n_iters + 10 + args.pretrain_mapper)
+                              N_iter=args.n_iters + 10)
     # initialize dataloader
     dataloader = DataLoader(dataset, batch_sampler=sampler,
                             num_workers=args.num_workers, pin_memory=True,

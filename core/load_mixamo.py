@@ -186,10 +186,10 @@ class MixamoDataset(PoseRefinedDataset):
         dataset = h5py.File(self.h5_path, 'r', swmr=True)
         selected_idxs_path = self.h5_path.replace('processed_h5py.h5', 'selected.npy')
         self._idx_map = np.load(selected_idxs_path)
+        self._idx_map = np.array(sorted(self._idx_map))
 
         super(MixamoDataset, self).init_meta()
 
-        self._idx_map = np.array(sorted(self._idx_map))
 
         # set white bkgd manually
         self.bgs = np.ones((1, np.prod(self.HW), 3), dtype=np.uint8) * 255

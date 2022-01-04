@@ -24,7 +24,7 @@ np.random.seed(0)
 DEBUG = True
 
 
-# @torch.no_grad(): commented out for that sdfnerf needs gradient..
+@torch.no_grad()
 def render_path(render_poses, hwf, chunk, render_kwargs,
                 centers=None, kp=None, skts=None, cyls=None, bones=None,
                 gt_imgs=None, bg_imgs=None, bg_indices=None,
@@ -144,7 +144,7 @@ def render_path(render_poses, hwf, chunk, render_kwargs,
 
     return rgbs, disps, accs, valid_idxs, bboxes
 
-# @torch.no_grad(): commented out for that sdfnerf needs gradient..
+@torch.no_grad()
 def render_testset(poses, hwf, args, render_kwargs, kps=None, skts=None, cyls=None, cams=None,
                    bones=None, subject_idxs=None, gt_imgs=None, gt_masks=None, bg_imgs=None, bg_indices=None,
                    vid_base=None, rgb_vid="rgb.mp4", disp_vid="disp.mp4", eval_metrics=False,

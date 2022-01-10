@@ -20,7 +20,7 @@ dataset_catalog = {
 class BaseH5Dataset(Dataset):
     # TODO: poor naming
     def __init__(self, h5_path, N_samples=96, patch_size=1, split='full',
-                 N_nms=0, subject=None, mask_img=False):
+                 N_nms=0, subject=None, mask_img=False, multiview=False):
         '''
         Base class for multi-proc h5 dataset
 
@@ -33,12 +33,14 @@ class BaseH5Dataset(Dataset):
         N_nms (float): number of pixel samples to sample from out-of-mask regions (in a bounding box).
         subject (str): name of the dataset subject
         mask_img (bool): replace background parts with estimated background pixels
+        multiview (bool): to enable multiview optimization
         '''
         self.h5_path = h5_path
         self.split = split
         self.dataset = None
         self.subject = subject
         self.mask_img = mask_img
+        self.multiview = multiview
 
         self.N_samples = N_samples
         self.patch_size = patch_size
@@ -164,15 +166,15 @@ class BaseH5Dataset(Dataset):
 
         # store pose and camera data directly in memory (they are small)
         self.gt_kp3d = dataset['gt_kp3d'][:] if 'gt_kp3d' in self.dataset_keys else None
+        self.kp_map, self.kp_uidxs = None, None # only not None when self.multiview = True
         self.kp3d, self.bones, self.skts, self.cyls = self._load_pose_data(dataset)
+
         self.focals, self.c2ws = self._load_camera_data(dataset)
         self.temp_validity = self.init_temporal_validity()
 
         if self.has_bg:
             self.bgs = dataset['bkgds'][:].reshape(-1, np.prod(self.HW), 3)
             self.bg_idxs = dataset['bkgd_idxs'][:].astype(np.int64)
-
-
 
         # TODO: maybe automatically figure this out
         self.skel_type = SMPLSkeleton
@@ -183,7 +185,18 @@ class BaseH5Dataset(Dataset):
         '''
         read pose data from .h5 file
         '''
-        return dataset['kp3d'][:], dataset['bones'][:], dataset['skts'][:], dataset['cyls'][:]
+        kp3d, bones, skts, cyls = dataset['kp3d'][:], dataset['bones'][:], \
+                                    dataset['skts'][:], dataset['cyls'][:]
+        if self.multiview:
+            return self._load_multiview_pose(dataset, kp3d, bones, skts, cyls)
+        return kp3d, bones, skts, cyls
+
+    def _load_multiview_pose(self, dataset, kp3d, bones, skts, cyls):
+        '''
+        Multiview data for pose optimization, depends on dataset
+        '''
+        assert self._idx_map is None, 'Subset is not supported for multiview optimization'
+        raise NotImplementedError
 
     def _load_camera_data(self, dataset):
         '''
@@ -466,8 +479,8 @@ class BaseH5Dataset(Dataset):
             'skts': self.skts[k_idxs],
             'bones': self.bones[k_idxs],
             'betas': betas,
-            'kp_map': None, # important for multiview setting
-            'kp_uidxs': None, # important for multiview setting
+            'kp_map': self.kp_map, # important for multiview setting
+            'kp_uidxs': self.kp_uidxs, # important for multiview setting
         }
 
         dataset.close()
@@ -552,7 +565,11 @@ class PoseRefinedDataset(BaseH5Dataset):
         refined_path, legacy = self.refined_paths[self.subject]
         print(f'Read refined poses from {refined_path}')
         # the first 4 is kp3d, bones, skts, cyls
-        return pose_ckpt_to_pose_data(refined_path, ext_scale=0.001, legacy=legacy)[:4]
+        kp3d, bones, skts, cyls = pose_ckpt_to_pose_data(refined_path, ext_scale=0.001, legacy=legacy)[:4]
+
+        if self.multiview:
+            return self._load_multiview_pose(dataset, kp3d, bones, skts, cyls)
+        return kp3d, bones, skts, cyls
 
 class ConcatH5Dataset(ConcatDataset):
     # TODO: poor naming
@@ -650,6 +667,9 @@ class ConcatH5Dataset(ConcatDataset):
         W = np.concatenate([r['hwf'][1] for r in render_data])
         focals = np.concatenate([r['hwf'][2] for r in render_data])
         merged_data['hwf'] = (H, W, focals)
+
+        # TODO: temporary: assume no center given
+        merged_data['center'] = None
 
         # data that can be concatenate directly
         to_cat = ['imgs', 'fgs', 'bgs', 'c2ws',

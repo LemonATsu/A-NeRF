@@ -253,7 +253,7 @@ def find_motion_set(img_paths):
     set_cnt = OrderedDict()
     set_idxs = []
     for p in img_paths:
-        set_name = p.split('/')[1]
+        set_name = p.split(b'/')[1]
         if set_name not in set_dict.keys():
             set_dict[set_name] = len(set_dict)
             set_cnt[set_name] = 1
@@ -303,9 +303,8 @@ def get_temporal_validity(img_paths):
         seq_map[i] = seq_cnt
     return valid, seq_map
 
-def map_data_to_n_views(data, n_views=1, avg_kps=False, debug=False):
-    if n_views == 1:
-        return data
+def map_data_to_n_views(img_paths, kp3d, bones, rest_pose,
+                        n_views=4, avg_kps=True):
 
     def set_root(k, k_unique, k_map, root_id=0):
         root = k[:, root_id:root_id+1]
@@ -320,30 +319,25 @@ def map_data_to_n_views(data, n_views=1, avg_kps=False, debug=False):
             other_parts = other_parts[k_map]
         return np.concatenate([root, other_parts], axis=1)
 
-    set_dict, set_cnt, set_idxs = find_motion_set(data['img_path'])
-    kp_map, kp_unique_idxs = create_kp_mapping(set_dict, set_cnt, set_idxs, n_views=n_views)
+    set_dict, set_cnt, set_idxs = find_motion_set(img_paths)
+    kp_map, kp_uidxs = create_kp_mapping(set_dict, set_cnt, set_idxs, n_views=n_views)
 
 
-    bones = data['bones'][kp_unique_idxs]
-    kp3d = data['kp3d'][kp_unique_idxs]
+    unique_bones = bones[kp_uidxs]
+    unique_kp3d = kp3d[kp_uidxs]
 
-    data['bones'] = set_root(data['bones'], bones, kp_map)
-    data['kp3d'] = set_root(data['kp3d'], kp3d, kp_map)
+    bones = set_root(bones, unique_bones, kp_map)
+    kp3d = set_root(kp3d, unique_kp3d, kp_map)
 
     # set skts properly for rendering
-    l2ws = np.array([get_smpl_l2ws(bone, data['rest_pose'], scale=1.) for bone in data['bones']])
-    l2ws[..., :3, -1] = l2ws[..., :3, -1] + data['kp3d'][:, 0:1].copy()
-    data['skts'] = np.array([np.linalg.inv(l2w) for l2w in l2ws])
+    l2ws = np.array([get_smpl_l2ws(bone, rest_pose, scale=1.) for bone in bones])
+    # assume root is at 0
+    l2ws[..., :3, -1] = l2ws[..., :3, -1] + kp3d[:, 0:1].copy()
+    skts = np.array([np.linalg.inv(l2w) for l2w in l2ws])
 
+    print(f"Data remapped to {n_views}. Note that root-rotation is not with the kp3d anymore.")
 
-    data['kp_map'] = kp_map
-    data['kp_unique_indices'] = kp_unique_idxs
-    print(f"Data remapped to {n_views}. Note that root-rotation is not with the kp3d anymore. DEBUG mode: {debug}")
-    if debug:
-        data['kp_map'] = np.minimum(kp_map, len(data['train_idxs']))
-        data['kp_unique_indices'] = np.minimum(kp_unique_idxs, len(data['train_idxs']))
-
-    return data
+    return kp_map, kp_uidxs, kp3d, bones, skts
 
 def generate_bullet_time(c2w, n_views=20):
 
@@ -424,6 +418,17 @@ class H36MDataset(PoseRefinedDataset):
 
         dataset.close()
         super(H36MDataset, self).init_meta()
+
+    def _load_multiview_pose(self, dataset, kp3d, bones, skts, cyls):
+        # cyls usually doesn't change too much
+        rest_pose = dataset['rest_pose'][:]
+        img_paths = dataset['img_paths'][:]
+        # set self.kp_map and self.kp_uidxs
+        kp_map, kp_uidxs, kp3d, bones, skts = map_data_to_n_views(img_paths, kp3d, bones, rest_pose)
+        self.kp_map = kp_map
+        self.kp_uidxs = kp_uidxs
+
+        return kp3d, bones, skts, cyls
 
 if __name__ == '__main__':
     import argparse

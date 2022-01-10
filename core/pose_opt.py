@@ -65,8 +65,7 @@ def create_popt(args, data_attrs, ckpt=None, device=None):
                 anchor_kps, anchor_bones, _, anchor_rots = popt_layer(torch.arange(anchor_bones.shape[0]))
             anchor_kps, anchor_bones = anchor_kps.cpu().clone(), anchor_bones.cpu().clone()
             anchor_beta = popt_layer.get_beta()
-
-        print("load smpl state dict")
+        print('load smpl state dict')
 
     # recompute anchor_rots to ensure it's consistent with bones
     anchor_rots = axisang_to_rot(anchor_bones.view(-1, 3)).view(*anchor_kps.shape[:2], 3, 3)
@@ -215,12 +214,26 @@ def load_poseopt_from_state_dict(state_dict):
     Assume no kp_map for now...
     '''
     print("Loading pose opt state dict")
+    pelvis = state_dict['poseopt_layer_state_dict']['pelvis']
+    # bones do not necessarily have the right shape
     bones = state_dict['poseopt_layer_state_dict']['bones']
-    N, N_J, N_D = bones.shape
+
+    # prob if it is multiview
+    kp_map = kp_uidxs = None
+    if 'kp_map' in state_dict['poseopt_layer_state_dict']:
+        kp_map = state_dict['poseopt_layer_state_dict']['kp_map'].cpu().numpy()
+        kp_uidxs = state_dict['poseopt_layer_state_dict']['kp_uidxs'].cpu().numpy()
+
+    N, N_J, N_D = pelvis.shape[0], *bones.shape[1:]
+    # multiview setting has root bone removed and stored separately,
+    # so need to add 1 back to the bone dimension
+    if kp_map is not None:
+        N_J += 1
     dummy_kp = torch.zeros(N, N_J, 3)
     dummy_bone = torch.zeros(N, N_J, 3)
+
     poseopt = PoseOptLayer(dummy_kp, dummy_bone, dummy_kp[0:1],
-                           use_rot6d= N_D==6)
+                           use_rot6d= N_D==6, kp_map=kp_map, kp_uidxs=kp_uidxs)
     poseopt.load_state_dict(state_dict['poseopt_layer_state_dict'])
     return poseopt
 
@@ -239,10 +252,14 @@ class PoseOptLayer(nn.Module):
         self.skel_type = skel_type
         self.use_cache = use_cache
         self.unroll_kinematic_chain = False
-        self.kp_map = kp_map
-        self.kp_uidxs = kp_uidxs # unique index mapping
         self.use_rot6d = use_rot6d
         self.rest_pose_idxs = rest_pose_idxs
+
+        if kp_map is not None:
+            self.register_buffer('kp_map', torch.tensor(kp_map).long())
+            self.register_buffer('kp_uidxs', torch.tensor(kp_uidxs).long())
+        else:
+            self.kp_map = self.kp_uidxs = None
 
         if skel_type == SMPLSkeleton:
             self.root_id = skel_type.root_id
@@ -314,6 +331,12 @@ class PoseOptLayer(nn.Module):
 
         return pelvis, torch.cat([root_bones, bones], dim=1)
 
+    def get_pelvis(self, idx=None):
+        if idx is None:
+            idx = np.arange(self.N_kps)
+        pelvis, _ = self.idx_to_params(idx)
+        return pelvis
+
     def get_beta(self):
         return self.beta
 
@@ -334,8 +357,6 @@ class PoseOptLayer(nn.Module):
         zeros = torch.zeros(*rots.shape[:-1], 1).to(rots.device)
         rots = torch.cat([rots, zeros], dim=-1)
         #bones = rotation_matrix_to_angle_axis(rots.view(-1, 3, 4))
-        print('verify this')
-        import pdb; pdb.set_trace()
         bones = rot_to_axisang(rots.view(-1, 3, 4))
         bones = bones.view(-1, NJ, 3)
         return bones
@@ -503,14 +524,12 @@ def pose_ckpt_to_pose_data(path=None, popt_sd=None, ext_scale=0.001, legacy=Fals
     # TODO: ext_scale is hard-coded for now. Fix it later
     if popt_sd is None:
         popt_sd = torch.load(path)['poseopt_layer_state_dict']
+    poseopt = load_poseopt_from_state_dict({'poseopt_layer_state_dict': popt_sd})
 
-    # TODO: maybe we will have multi-rest poses later
-    rest_pose = popt_sd['rest_pose'][0].cpu().numpy()
-    pelvis = popt_sd['pelvis'].cpu().numpy()
-    bones = popt_sd['bones']
-    if bones.shape[-1] == 6:
-        bones = rot6d_to_axisang(popt_sd['bones'])
-    bones = bones.cpu().numpy()
+    with torch.no_grad():
+        pelvis = poseopt.get_pelvis().cpu().numpy()
+        bones = poseopt.get_bones().cpu().numpy()
+        rest_pose = poseopt.get_rest_pose()[0].cpu().numpy()
 
     if legacy:
         pelvis[..., 1:] *= -1

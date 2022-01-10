@@ -444,10 +444,8 @@ def config_parser():
 
     # h36m dataset
     # TODO: enable this
-    parser.add_argument("--h36m_n_views", type=int, default=1,
-                        help='assume multi-views')
-    parser.add_argument("--h36m_avg_kps", action='store_true',
-                        help='average kp instead of randomly pick one when using multiview')
+    parser.add_argument("--multiview", action='store_true',
+                        help='use multiview optimization')
     # TODO: REMOVE
     parser.add_argument("--training_res", type=float, default=1.0,
                         help='resize training images by this amount')

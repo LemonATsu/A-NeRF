@@ -121,7 +121,8 @@ def get_dataset_from_catalog(args, N_samples, dataset_type, subject=None, N_nms=
                      'mask_img': args.mask_image,
                      'patch_size': args.patch_size,
                      'subject': subject,
-                     'N_nms': N_nms,}
+                     'N_nms': N_nms,
+                     'multiview': args.multiview,}
     refined_kwargs = {'load_refined': args.load_refined}
 
     path = DATASET_CATALOG[dataset_type][subject]

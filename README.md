@@ -5,6 +5,8 @@
 >[Shih-Yang Su](https://lemonatsu.github.io/), [Frank Yu](https://yu-frank.github.io/), [Michael Zollhรถfer](https://zollhoefer.com/), and [Helge Rhodin](http://helge.rhodin.de/)\
 >Thirty-Fifth Conference on Neural Information Processing Systems (NeurIPS 2021)
 
+## Update
+- Jan 10, 2022: update reference code for multiview pose optimization with uncalibrated cameras.
 
 ## Setup
 

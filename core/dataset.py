@@ -498,12 +498,8 @@ class BaseH5Dataset(Dataset):
         kq_idxs = kq_idxs[::self.render_skip][:self.N_render]
         cq_idxs = cq_idxs[::self.render_skip][:self.N_render]
         i_idxs = i_idxs[::self.render_skip][:self.N_render]
-        k_idxs = k_idxs[kq_idxs]
-        c_idxs = c_idxs[cq_idxs]
-
-        # call functions to get the actual sampled indexs
-        k_idxs, kp_idxs = self.get_kp_idx(k_idxs, kq_idxs)
-        c_idxs, cam_idxs = self.get_cam_idx(c_idxs, cq_idxs)
+        k_idxs = k_idxs[::self.render_skip][:self.N_render]
+        c_idxs = c_idxs[::self.render_skip][:self.N_render]
 
         # get images if split == 'render'
         # note: needs to have self._idx_map
@@ -528,13 +524,13 @@ class BaseH5Dataset(Dataset):
             'bg_idxs': render_bg_idxs,
             'bg_idxs_len': len(self.bgs),
             # camera data
-            'cam_idxs': cam_idxs,
+            'cam_idxs': c_idxs,
             'cam_idxs_len': len(self.c2ws),
             'c2ws': self.c2ws[c_idxs],
             'hwf': hwf,
             'center': center,
             # keypoint data
-            'kp_idxs': kp_idxs,
+            'kp_idxs': k_idxs,
             'kp_idxs_len': len(self.kp3d),
             'kp3d': self.kp3d[k_idxs],
             'skts': self.skts[k_idxs],

@@ -242,7 +242,11 @@ def txt_to_argstring(path, ignore_config=False):
             if isinstance(literal, list):
                 val = [f'{v}' for v in literal]
                 argstr.extend(val)
-
+            elif isinstance(literal, str) and literal[0] == '[' and literal[-1] == ']':
+                # might be non-string?
+                list_str = literal[1:-1].split(',')
+                list_str = [s.strip() for s in list_str]
+                argstr.extend(list_str)
             elif not isinstance(literal, bool):
                 argstr.append(val)
             elif not literal:
@@ -251,15 +255,15 @@ def txt_to_argstring(path, ignore_config=False):
     return argstr
 
 def evaluate_metric(rgbs, gt_imgs, disps=None, gt_masks=None, valid_idxs=None, poses=None,
-                    kps=None, hwf=None, ext_scale=None, rgb_vid="rgb.mp4", disp_vid="disp.mp4",
+                    kps=None, hwf=None, centers=None, ext_scale=None, rgb_vid="rgb.mp4", disp_vid="disp.mp4",
                     vid_base=None, eval_postfix="", eval_both=False, white_bkgd=False,
                     render_factor=0):
 
-    if eval_both and valid_idxs is None:
-        print("Valid idxs not provided. Calculate them from keypoints ...")
-        H, W, focal = hwf
-        _, valid_idxs, _ = kp_to_valid_rays(poses, H, W, focal,
-                                            kps=kps, ext_scale=ext_scale)
+    if eval_both and (valid_idxs is None or render_factor != 0):
+        RH, RW, Rfocal = hwf
+        print("Valid idxs not provided or is calculated at different resolution. Calculate them from keypoints ...")
+        _, valid_idxs, _, _ = kp_to_valid_rays(poses, RH, RW, Rfocal,
+                                               centers=centers, kps=kps, ext_scale=ext_scale)
 
 
     # trim out nan to get visible outcomes

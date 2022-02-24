@@ -28,45 +28,67 @@ num_train_frames = {
     '396': 540, # begin ith frame == 810
 }
 
-def get_mask(path, img_path):
+def get_mask(path, img_path, erode_border=False):
     '''
     Following NeuralBody repo
     https://github.com/zju3dv/neuralbody/blob/master/lib/datasets/light_stage/can_smpl.py#L46    '''
+
     mask_path = os.path.join(path, 'mask', img_path[:-4] + '.png')
-    mask = imageio.imread(mask_path)
-    mask = (mask != 0).astype(np.uint8)
+    mask = None
+    if os.path.exists(mask_path):
+        mask = imageio.imread(mask_path)
+        mask = (mask != 0).astype(np.uint8)
 
     mask_path = os.path.join(path, 'mask_cihp', img_path[:-4] + '.png')
-    mask_cihp = imageio.imread(mask_path)
-    mask_cihp = (mask_cihp != 0).astype(np.uint8)
-    mask = (mask | mask_cihp).astype(np.uint8)
-
+    mask_cihp = None
+    if os.path.exists(mask_path):
+        mask_cihp = imageio.imread(mask_path)
+        mask_cihp = (mask_cihp != 0).astype(np.uint8)
+    
+    if mask is not None and mask_cihp is not None:
+        mask = (mask | mask_cihp).astype(np.uint8)
+    elif mask_cihp is not None:
+        mask = mask_cihp
+    
     border = 5
     kernel = np.ones((border, border), np.uint8)
     #mask_erode = cv2.erode(mask.copy(), kernel)
-    sampling_mask = cv2.dilate(mask.copy(), kernel, iterations=2)
+    sampling_mask = cv2.dilate(mask.copy(), kernel, iterations=3)
 
     #sampling_mask = mask.copy()
     #sampling_mask[(mask_dilate - mask_erode) == 1] = 100
+    if erode_border:
+        dilated = cv2.dilate(mask.copy(), kernel) 
+        eroded = cv2.erode(mask.copy(), kernel) 
+        sampling_mask[(dilated - eroded) == 1] = 0
+    #eroded = cv2.erode(mask.copy(), kernel, iterations=1) 
+    #mask = eroded.copy()
 
     return mask, sampling_mask
 
 @torch.no_grad()
 def get_smpls(path, kp_idxs, gender='neutral', ext_scale=1.0, scale_to_ref=True,
-              ref_pose=smpl_rest_pose):
+              ref_pose=smpl_rest_pose, param_path=None, model_path=None, vertices_path=None):
     '''
     Note: it's yet-another-smpl-coordinate system
     bodies: the vertices from ZJU dataset
     '''
+
+    if param_path is None:
+        param_path = 'params'
+    if model_path is None:
+        model_path = 'smpl'
+    if vertices_path is None:
+        vertices_path = 'vertices'
+
     bones, betas, root_bones, root_locs = [], [], [], []
     zju_vertices = []
     for kp_idx in kp_idxs:
-        param_path = os.path.join(path, 'params', f'{kp_idx}.npy')
-        params = np.load(param_path, allow_pickle=True).item()
+        params = np.load(os.path.join(path, param_path, f'{kp_idx}.npy'), allow_pickle=True).item()
         bone = params['poses'].reshape(-1, 24, 3)
         beta = params['shapes']
         # load the provided vertices
-        zju_vert = np.load(os.path.join(path, 'vertices', f'{kp_idx}.npy')).astype(np.float32)
+        zju_vert = np.load(os.path.join(path, vertices_path, f'{kp_idx}.npy')).astype(np.float32)
 
         zju_vertices.append(zju_vert)
         bones.append(bone)
@@ -100,7 +122,7 @@ def get_smpls(path, kp_idxs, gender='neutral', ext_scale=1.0, scale_to_ref=True,
 
     # 1. get T
     dummy = torch.zeros(1, 24, 3, 3).float()
-    smpl = SMPL(model_path='smpl', gender=gender, joint_mapper=SMPL_JOINT_MAPPER)
+    smpl = SMPL(model_path=model_path, gender=gender, joint_mapper=SMPL_JOINT_MAPPER)
 
     T = smpl(betas=betas.mean(0)[None],
              body_pose=dummy[:, 1:],
@@ -204,23 +226,28 @@ def process_zju_data(data_path, subject='377', training_view=[0, 6, 12, 18],
     ]).ravel()
 
     # Extract information from the dataset.
-    imgs, masks, sampling_masks = [], [], []
+    imgs = np.zeros((len(img_paths), H, W, 3), dtype=np.uint8)
+    masks = np.zeros((len(img_paths), H, W, 1), dtype=np.uint8)
+    sampling_masks = np.zeros((len(img_paths), H, W, 1), dtype=np.uint8)
     kp_idxs = []
-    for img_path, cam_idx in zip(img_paths, cam_idxs):
+    for i, (img_path, cam_idx) in enumerate(zip(img_paths, cam_idxs)):
+
+        if i % 50 == 0:
+            print(f'{i+1}/{len(img_paths)}')
 
         K = np.array(cams['K'][cam_idx])
         D = np.array(cams['D'][cam_idx])
 
         img = imageio.imread(os.path.join(subject_path, img_path))
-        mask, sampling_mask = get_mask(subject_path, img_path)
+        mask, sampling_mask = get_mask(subject_path, img_path, erode_border=True)
 
         img = cv2.undistort(img, K, D)
         mask = cv2.undistort(mask, K, D)[..., None]
-        img = img * mask # + (1 - mask) * 255
         sampling_mask = cv2.undistort(sampling_mask, K, D)[..., None]
+        mask[mask > 1] = 1
 
         # resize the corresponding data as needed
-        if res is not None:
+        if res is not None and res != 1.0:
             img = cv2.resize(img, (W, H), interpolation=cv2.INTER_AREA)
             mask = cv2.resize(mask, (W, H), interpolation=cv2.INTER_NEAREST)
             sampling_mask = cv2.resize(sampling_mask, (W, H), interpolation=cv2.INTER_NEAREST)
@@ -231,15 +258,27 @@ def process_zju_data(data_path, subject='377', training_view=[0, 6, 12, 18],
         else:
             kp_idx = int(os.path.basename(img_path)[:-4])
 
-        imgs.append(img)
-        masks.append(mask)
-        sampling_masks.append(sampling_mask)
+        imgs[i] = img
+        masks[i] = mask
+        sampling_masks[i] = sampling_mask
         kp_idxs.append(kp_idx)
 
     unique_cams = np.unique(cam_idxs)
-    imgs = np.array(imgs)
-    masks = np.array(masks).reshape(-1, H, W, 1)
-    sampling_masks = np.array(sampling_masks).reshape(-1, H, W, 1)
+    bkgds = np.zeros((num_cams, H, W, 3), dtype=np.uint8)
+    # get background
+    for c in unique_cams:
+        cam_imgs = imgs[cam_idxs==c].reshape(-1, H, W, 3)
+        cam_masks = masks[cam_idxs==c].reshape(-1, H, W, 1)
+        N_cam_imgs = len(cam_imgs)
+        for h_ in range(H):
+            for w_ in range(W):
+                vals = []
+                is_bg = np.where(cam_masks[:, h_, w_] < 1)[0]
+                if len(is_bg) == 0:
+                    med = np.array([0, 0, 0]).astype(np.uint8)
+                else:
+                    med = np.median(cam_imgs[is_bg, h_, w_], axis=0)
+                bkgds[c, h_, w_] = med.astype(np.uint8) 
 
     # get extrinsic data
     c2ws, focals, centers = [], [], []
@@ -285,6 +324,8 @@ def process_zju_data(data_path, subject='377', training_view=[0, 6, 12, 18],
         kp_idxs = np.array(kp_idxs) - 700
 
     return {'imgs': np.array(imgs),
+            'bkgds': np.array(bkgds),
+            'bkgd_idxs': cam_idxs,
             'masks': np.array(masks).reshape(-1, H, W, 1),
             'sampling_masks': np.array(sampling_masks).reshape(-1, H, W, 1),
             'c2ws': c2ws.astype(np.float32),
@@ -301,6 +342,197 @@ def process_zju_data(data_path, subject='377', training_view=[0, 6, 12, 18],
             #'vertices': vertices
             }
 
+
+def set_h36m_zju_config(ann_file, num_train_frame, num_eval_frame, begin_ith_frame=0, frame_interval=5,
+                        smpl='new_smpl', params='new_params', vertices='new_vertices', erode_border=True, 
+                        smpl_path='smplx'):
+    return {'ann_file': ann_file, 
+            'num_train_frame': num_train_frame,
+            'num_eval_frame': num_eval_frame,
+            'begin_ith_frame': begin_ith_frame, 
+            'frame_interval': frame_interval,
+            'smpl': smpl,
+            'params': params,
+            'vertices': vertices,
+            'erode_border': erode_border,
+            'smpl_path': smpl_path
+           }
+
+h36m_zju_configs = {
+    'S1': set_h36m_zju_config('Posing/annots.npy', 150, 49),
+    'S5': set_h36m_zju_config('Posing/annots.npy', 250, 127),
+    'S6': set_h36m_zju_config('Posing/annots.npy', 150, 83),
+    'S7': set_h36m_zju_config('Posing/annots.npy', 300, 200),
+    'S8': set_h36m_zju_config('Posing/annots.npy', 250, 87),
+    'S9': set_h36m_zju_config('Posing/annots.npy', 260, 133),
+    'S11': set_h36m_zju_config('Posing/annots.npy', 200, 82),
+}
+
+def process_h36m_zju_data(data_path, subject='S1', training_view=[0,1,2], split='train', res=None,
+                          ext_scale=0.001, skel_type=SMPLSkeleton):
+    '''
+    Note: they only use the Posing sequence for training
+    '''
+    H = 1000
+    W = 1000 
+    assert ext_scale == 0.001
+    
+    if res is not None and res != 1.0:
+        H = int(H * res)
+        W = int(W * res)
+    
+    config = h36m_zju_configs[subject]
+    subject_path = os.path.join(data_path, f"{subject}")
+    annot_path = os.path.join(subject_path, config['ann_file'])
+    annots = np.load(annot_path, allow_pickle=True).item()
+    subject_path = os.path.join(subject_path, 'Posing') # h36m-zju only use this sequence
+    
+    cams = annots['cams']
+    num_cams = len(cams['K'])
+
+    # following animatable NeRF's format
+    i = config['begin_ith_frame']
+    i_intv = config['frame_interval']
+    ni = config['num_train_frame']
+    
+    if split == 'train':
+        view = training_view
+    else:
+        
+        view = np.array([i for i in range(num_cams) if i not in training_view])
+        if len(view) == 0:
+            view = [0]
+
+        i = config['begin_ith_frame'] + config['num_train_frame'] * i_intv
+        ni = config['num_eval_frame']
+        
+    # extract image and the corresponding camera indices
+    img_paths = np.array([
+            np.array(imgs_data['ims'])[view]
+            for imgs_data in annots['ims'][i:i + ni * i_intv][::i_intv]
+    ]).ravel()
+    cam_idxs = np.array([
+            np.arange(len(imgs_data['ims']))[view]
+            for imgs_data in annots['ims'][i:i + ni * i_intv][::i_intv]
+    ]).ravel()
+    
+    kp_ids = []
+    imgs = np.zeros((len(img_paths), H, W, 3), dtype=np.uint8)
+    masks = np.zeros((len(img_paths), H, W, 1), dtype=np.uint8)
+    sampling_masks = np.zeros((len(img_paths), H, W, 1), dtype=np.uint8)
+
+    for i, (img_path, cam_idx) in enumerate(zip(img_paths, cam_idxs)):
+        
+        if i % 50 == 0:
+            print(f'{i+1}/{len(img_paths)}')
+        
+        # get camera parameters
+        K = np.array(cams['K'][cam_idx])
+        D = np.array(cams['D'][cam_idx])
+        
+        # retrieve images
+        img = imageio.imread(os.path.join(subject_path, img_path))
+        mask, sampling_mask = get_mask(subject_path, img_path, erode_border=config['erode_border'])
+        
+        # process image and mask
+        img = cv2.undistort(img, K, D)
+        mask = cv2.undistort(mask, K, D)[..., None]
+        sampling_mask = cv2.undistort(sampling_mask, K, D)[..., None]
+        mask[mask > 1] = 1
+
+        # resize the corresponding data as needed
+        if res is not None and res != 1.0:
+            img = cv2.resize(img, (W, H), interpolation=cv2.INTER_AREA)
+            mask = cv2.resize(mask, (W, H), interpolation=cv2.INTER_NEAREST)
+            sampling_mask = cv2.resize(sampling_mask, (W, H), interpolation=cv2.INTER_NEAREST)
+            K[:2] = K[:2] * res
+
+        # grab img_id for creating kp_idxs
+        kp_id = img_path.split('/')[-1][:-4]
+        imgs[i] = img
+        masks[i] = mask
+        sampling_masks[i] = sampling_mask
+        kp_ids.append(kp_id)
+    kp_ids = [int(kp_id) for kp_id in kp_ids]
+    kp_ids, kp_idxs = np.unique(kp_ids, return_inverse=True)
+    unique_cams = np.unique(cam_idxs)
+    bkgds = np.zeros((num_cams, H, W, 3), dtype=np.uint8)
+
+    # get background
+    for c in unique_cams:
+        cam_imgs = imgs[cam_idxs==c].reshape(-1, H, W, 3)
+        cam_masks = masks[cam_idxs==c].reshape(-1, H, W, 1)
+        N_cam_imgs = len(cam_imgs)
+        for h_ in range(H):
+            for w_ in range(W):
+                vals = []
+                is_bg = np.where(cam_masks[:, h_, w_] < 1)[0]
+                if len(is_bg) == 0:
+                    med = np.array([0, 0, 0]).astype(np.uint8)
+                else:
+                    med = np.median(cam_imgs[is_bg, h_, w_], axis=0)
+                bkgds[c, h_, w_] = med.astype(np.uint8) 
+
+    # get camera data
+    c2ws, focals, centers = [], [], []
+    for c in range(num_cams):
+        R = np.array(cams['R'][c])
+        T = np.array(cams['T'][c]) / 1000. # in 1m system.
+        K = np.array(cams['K'][c])
+
+        # get camera-to-world matrix from extrinsic
+        ext = np.concatenate([R, T], axis=-1)
+        ext = np.concatenate([ext, np.array([[0, 0, 0., 1.]])], axis=0)
+        c2w = np.linalg.inv(ext)
+        c2w[:3, -1:] = zju_to_nerf_rot @ c2w[:3, -1:]
+        c2w[:3, :3] = zju_to_nerf_rot @ c2w[:3, :3]
+        c2ws.append(c2w)
+
+        # save intrinsic data
+        if res is not None:
+            K[:2] = K[:2] * res
+        focals.append([K[0, 0], K[1, 1]])
+        centers.append(K[:2, -1])
+
+    focals = np.array(focals)
+    centers = np.array(centers)
+    c2ws = np.array(c2ws).astype(np.float32)
+    c2ws = swap_mat(c2ws) # to NeRF format
+    
+    # get pose-related data
+    betas, kp3d, bones, skts, rest_pose, vertices, pose_scale = get_smpls(
+                                                                    subject_path, kp_ids,
+                                                                    scale_to_ref=False,
+                                                                    model_path=os.path.join(data_path, config['smpl_path'], 'smpl'),
+                                                                    param_path=config['params'],
+                                                                    vertices_path=config['vertices'],
+                                                                  )
+    cyls = get_kp_bounding_cylinder(kp3d,
+                                    ext_scale=ext_scale,
+                                    skel_type=skel_type,
+                                    extend_mm=250,
+                                    top_expand_ratio=1.00,
+                                    bot_expand_ratio=0.25,
+                                    head='-y')
+
+    return {'imgs': np.array(imgs),
+            'bkgds': np.array(bkgds),
+            'bkgd_idxs': cam_idxs,
+            'masks': np.array(masks).reshape(-1, H, W, 1),
+            'sampling_masks': np.array(sampling_masks).reshape(-1, H, W, 1),
+            'c2ws': c2ws.astype(np.float32),
+            'img_pose_indices': cam_idxs,
+            'kp_idxs': np.array(kp_idxs),
+            'centers': centers.astype(np.float32),
+            'focals': focals.astype(np.float32),
+            'kp3d': kp3d.astype(np.float32),
+            'betas': betas.numpy().astype(np.float32),
+            'bones': bones.astype(np.float32),
+            'skts': skts.astype(np.float32),
+            'cyls': cyls.astype(np.float32),
+            'rest_pose': rest_pose.astype(np.float32),
+            }
+
 class ZJUMocapDataset(BaseH5Dataset):
 
     N_render = 15
@@ -310,16 +542,18 @@ class ZJUMocapDataset(BaseH5Dataset):
         super(ZJUMocapDataset, self).__init__(*args, **kwargs)
 
     def init_meta(self):
+        if self.split == 'test':
+            self.h5_path = self.h5_path.replace('train', 'test')
         super(ZJUMocapDataset, self).init_meta()
 
         dataset = h5py.File(self.h5_path, 'r')
         self.kp_idxs = dataset['kp_idxs'][:]
         self.cam_idxs = dataset['img_pose_indices'][:]
 
-        # create fake background
-        self.has_bg = True
-        self.bgs = np.zeros((1, *self.HW, 3), dtype=np.uint8).reshape(1, -1, 3)
-        self.bg_idxs = np.arange(len(dataset['imgs'])) * 0
+        if self.split == 'test':
+            n_unique_cam = len(np.unique(self.cam_idxs))
+            self.kp_idxs = self.kp_idxs // n_unique_cam
+
         print('WARNING: ZJUMocap does not support pose refinement for now (_get_subset_idxs is not implemented)')
         dataset.close()
 
@@ -343,7 +577,52 @@ class ZJUMocapDataset(BaseH5Dataset):
         '''
         return self.cam_idxs[idx], q_idx
 
-    def _get_subset_idxs(self):
+    def _get_subset_idxs(self, render=False):
+        '''
+        get the part of data that you want to train on
+        '''
+        if self._idx_map is not None:
+            i_idxs = self._idx_map
+            _k_idxs = self._idx_map
+            _c_idxs = self._idx_map
+            _kq_idxs = np.arange(len(self._idx_map))
+            _cq_idxs = np.arange(len(self._idx_map))
+        else:
+            i_idxs = np.arange(self._N_total_img)
+            _k_idxs = _kq_idxs = np.arange(self._N_total_img)
+            _c_idxs = _cq_idxs = np.arange(self._N_total_img)
+
+        # call the dataset-dependent fns to get the true kp/cam idx
+        k_idxs, kq_idxs = self.get_kp_idx(_k_idxs, _kq_idxs)
+        c_idxs, cq_idxs = self.get_cam_idx(_c_idxs, _cq_idxs)
+
+        return k_idxs, c_idxs, i_idxs, kq_idxs, cq_idxs
+
+class ZJUH36MDataset(ZJUMocapDataset):
+
+    N_render = 30
+    render_skip = 1
+
+    def init_meta(self):
+        if self.split == 'test':
+            self.h5_path = self.h5_path.replace('train', 'test')
+        super(ZJUH36MDataset, self).init_meta()
+
+        dataset = h5py.File(self.h5_path, 'r')
+        self.kp_idxs = dataset['kp_idxs'][:]
+        self.cam_idxs = dataset['img_pose_indices'][:]
+
+
+        idxs = np.arange(len(self.kp_idxs))
+        train_idxs, val_idxs = idxs[:-30], idxs[-30:]
+        if self.split == 'train':
+            self._idx_map = train_idxs
+        elif self.split == 'val':
+            self._idx_map = val_idxs
+
+        dataset.close()
+
+    def _get_subset_idxs(self, render=False):
         '''
         get the part of data that you want to train on
         '''
@@ -365,20 +644,31 @@ class ZJUMocapDataset(BaseH5Dataset):
         return k_idxs, c_idxs, i_idxs, kq_idxs, cq_idxs
 
 
+    
 if __name__ == '__main__':
     #from renderer import Renderer
     import argparse
     parser = argparse.ArgumentParser(description='Arguments for masks extraction')
+    parser.add_argument("-d", "--dataset", type=str, default='mocap')
     parser.add_argument("-s", "--subject", type=str, default="377",
                         help='subject to extract')
     parser.add_argument("--split", type=str, default="train",
                         help='split to use')
     args = parser.parse_args()
+    dataset = args.dataset
     subject = args.subject
     split = args.split
-    data_path = 'data/zju_mocap/'
-    print(f"Processing {subject}_{split}...")
-    data = process_zju_data(data_path, subject, split=split, res=1.0)
-    #dd.io.save(os.path.join(data_path, f"{subject}_{split}.h5"), data)
-    write_to_h5py(os.path.join(data_path, f"{subject}_{split}_h5py.h5"), data)
+
+    if dataset == 'mocap':
+        data_path = 'data/zju_mocap/'
+        print(f"Processing {subject}_{split}...")
+        data = process_zju_data(data_path, subject, split=split, res=1.0)
+    elif dataset == 'h36m':
+        data_path = 'data/h36m_zju'
+        print(f"Processing {subject}_{split}...")
+        data = process_h36m_zju_data(data_path, subject, split=split, res=1.0)
+    else:
+        raise NotImplementedError(f'Unknown dataset {dataset}')
+
+    write_to_h5py(os.path.join(data_path, f"{subject}_{split}.h5"), data)
 

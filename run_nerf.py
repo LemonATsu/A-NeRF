@@ -171,7 +171,7 @@ def render_testset(poses, hwf, args, render_kwargs, kps=None, skts=None, cyls=No
         metrics = evaluate_metric(rgbs, gt_imgs, disps, gt_masks, valid_idxs, poses=poses,
                                   kps=kps, hwf=hwf, ext_scale=args.ext_scale, rgb_vid=rgb_vid,
                                   disp_vid=disp_vid, vid_base=vid_base, eval_postfix=eval_postfix,
-                                  eval_both=eval_both, white_bkgd=False,
+                                  centers=centers, eval_both=eval_both, white_bkgd=False,
                                   render_factor = args.render_factor)
     else:
         metrics = {"psnr": None, "ssim": None}

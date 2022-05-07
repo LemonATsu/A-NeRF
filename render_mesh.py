@@ -138,7 +138,8 @@ for i, obj_path in enumerate(obj_files):
     faces = mesh.faces
     print(f'{obj_file}: {vertices.shape}')
 
-    rot = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
+    #rot = np.array([[1, 0, 0], [0, 0, 1], [0, -1, 0]])
+    rot = np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
     vertices = np.dot(vertices, rot.T)
     mesh.vertices = vertices
 

@@ -50,8 +50,8 @@ class Camera:
         self.eye = np.array([0, 0, -3.6])
         self.center = np.array([0, 0, 0])
         self.direction = np.array([0, 0, -1])
-        self.right = np.array([1, 0, 0])
-        self.up = np.array([0, 1, 0])
+        self.right = -np.array([1, 0, 0])
+        self.up = -np.array([0, 1, 0])
 
         self.ortho_ratio = None
 

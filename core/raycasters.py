@@ -582,7 +582,7 @@ class RayCaster(nn.Module):
 
         # generate 3d cubes (voxels)
         t = np.linspace(-radius, radius, res+1)
-        grid_pts = np.stack(np.meshgrid(t, t, t), axis=-1).astype(np.float32)
+        grid_pts = np.stack(np.meshgrid(t, -t, t), axis=-1).astype(np.float32)
         sh = grid_pts.shape
         grid_pts = torch.tensor(grid_pts.reshape(-1, 3)) + kps[0, 0]
         grid_pts = grid_pts.reshape(-1, 1, 3)

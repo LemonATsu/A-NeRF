@@ -567,6 +567,24 @@ class PoseRefinedDataset(BaseH5Dataset):
             return self._load_multiview_pose(dataset, kp3d, bones, skts, cyls)
         return kp3d, bones, skts, cyls
 
+    def get_render_data(self):
+        
+        render_data = super().get_render_data()
+
+
+        # get the subset idxs to collect the right data
+        k_idxs, c_idxs, i_idxs, kq_idxs, cq_idxs = self._get_subset_idxs(render=True)
+
+        # grab only a subset (15 images) for rendering
+        kq_idxs = kq_idxs[::self.render_skip][:self.N_render]
+        cq_idxs = cq_idxs[::self.render_skip][:self.N_render]
+        render_data['kp_idxs'] = kq_idxs.copy()
+        render_data['cam_idxs'] = cq_idxs.copy()
+
+        return render_data
+
+
+
 class ConcatH5Dataset(ConcatDataset):
     # TODO: poor naming
     # TODO: also allows it to call get_pose?
